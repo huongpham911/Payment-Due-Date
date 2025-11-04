@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment Due Date Alert - Quản lý thanh toán</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <h1>💰 Payment Due Date Alert</h1>
+                <p>Quản lý và cảnh báo các khoản thanh toán sắp hết hạn</p>
+            </div>
+            <div class="header-actions">
+                <button id="syncGoogleBtn" class="btn btn-google">
+                    <span class="icon">📅</span>
+                    <span id="googleStatus">Kết nối Google Calendar</span>
+                </button>
+                <button id="testTelegramBtn" class="btn btn-telegram">
+                    <span class="icon">📱</span>
+                    Test Telegram
+                </button>
+            </div>
+        </header>
+
+        <!-- Status Bar -->
+        <div class="status-bar">
+            <div class="status-item">
+                <span class="status-label">Google Calendar:</span>
+                <span id="gcalStatus" class="status-value">Đang kiểm tra...</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">Telegram Bot:</span>
+                <span id="telegramStatus" class="status-value">Đang kiểm tra...</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">Scheduler:</span>
+                <span id="schedulerStatus" class="status-value">Đang kiểm tra...</span>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Add Payment Form -->
+            <div class="card">
+                <h2>➕ Thêm khoản thanh toán mới</h2>
+                <form id="addPaymentForm">
+                    <div class="form-group">
+                        <label for="title">Tiêu đề *</label>
+                        <input type="text" id="title" name="title" required placeholder="VD: Tiền điện tháng 11">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="description">Mô tả</label>
+                        <textarea id="description" name="description" rows="3" placeholder="Mô tả chi tiết về khoản thanh toán..."></textarea>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="amount">Số tiền (VNĐ)</label>
+                            <input type="number" id="amount" name="amount" placeholder="1000000" step="1000">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="due_date">Hạn thanh toán *</label>
+                            <input type="date" id="due_date" name="due_date" required>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">
+                        <span class="icon">➕</span>
+                        Thêm khoản thanh toán
+                    </button>
+                </form>
+            </div>
+
+            <!-- Upcoming Payments -->
+            <div class="card">
+                <div class="card-header">
+                    <h2>⚠️ Khoản thanh toán sắp đến hạn</h2>
+                    <button id="refreshBtn" class="btn btn-secondary">
+                        <span class="icon">🔄</span>
+                        Làm mới
+                    </button>
+                </div>
+                <div id="upcomingPayments" class="payments-list">
+                    <div class="loading">Đang tải...</div>
+                </div>
+            </div>
+
+            <!-- All Payments -->
+            <div class="card">
+                <div class="card-header">
+                    <h2>📋 Tất cả khoản thanh toán</h2>
+                    <div class="card-actions">
+                        <button id="sendSummaryBtn" class="btn btn-secondary">
+                            <span class="icon">📊</span>
+                            Gửi báo cáo
+                        </button>
+                        <button id="manualCheckBtn" class="btn btn-secondary">
+                            <span class="icon">🔔</span>
+                            Kiểm tra thủ công
+                        </button>
+                    </div>
+                </div>
+                <div id="allPayments" class="payments-list">
+                    <div class="loading">Đang tải...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Modal -->
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>✏️ Chỉnh sửa khoản thanh toán</h2>
+                <button class="close-modal">&times;</button>
+            </div>
+            <form id="editPaymentForm">
+                <input type="hidden" id="edit_id">
+
+                <div class="form-group">
+                    <label for="edit_title">Tiêu đề *</label>
+                    <input type="text" id="edit_title" name="title" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="edit_description">Mô tả</label>
+                    <textarea id="edit_description" name="description" rows="3"></textarea>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="edit_amount">Số tiền (VNĐ)</label>
+                        <input type="number" id="edit_amount" name="amount" step="1000">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="edit_due_date">Hạn thanh toán *</label>
+                        <input type="date" id="edit_due_date" name="due_date" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="edit_status">Trạng thái</label>
+                    <select id="edit_status" name="status">
+                        <option value="pending">Chưa thanh toán</option>
+                        <option value="paid">Đã thanh toán</option>
+                    </select>
+                </div>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary cancel-btn">Hủy</button>
+                    <button type="submit" class="btn btn-primary">
+                        <span class="icon">💾</span>
+                        Lưu thay đổi
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast"></div>
+
+    <script src="script.js"></script>
+</body>
+</html>
