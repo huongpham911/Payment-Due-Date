@@ -1,6 +1,6 @@
 # 📸 AI Bill Scanning Feature
 
-Gửi ảnh hóa đơn vào Telegram Bot → AI tự động phân tích → Tạo nhắc nhở thanh toán!
+**Gửi ảnh hoặc text hóa đơn** vào Telegram Bot → AI tự động phân tích → Tạo nhắc nhở thanh toán!
 
 ## 🎯 Tính năng
 
@@ -66,18 +66,35 @@ NOTIFICATION_CHECK_INTERVAL=0 * * * *
 npm start
 ```
 
-### 2. Gửi ảnh bill vào Telegram
+### 2. Gửi bill vào Telegram (2 cách)
 
+#### Cách 1: Gửi ảnh 📸
 1. Mở Telegram, tìm bot của bạn
 2. Chụp ảnh hóa đơn (Netflix, Shopee, Điện, Nước, v.v.)
 3. Gửi ảnh cho bot
 
+#### Cách 2: Paste text 📝
+1. Copy text từ email/SMS hóa đơn
+2. Paste vào chat với bot
+3. Hoặc forward message từ bank/shop
+
 ### 3. Bot tự động xử lý
 
+**Từ ảnh:**
 ```
 Bot: 📸 Đang phân tích hóa đơn...
-
 Bot: ✅ Đã tạo nhắc nhở thanh toán!
+```
+
+**Từ text:**
+```
+You: Netflix Premium
+     Số tiền: 299,000 VNĐ
+     Ngày mua: 05/01/2025
+     Hết hạn: 05/02/2025
+
+Bot: 📝 Đang phân tích text hóa đơn...
+Bot: ✅ Đã tạo nhắc nhở thanh toán từ text!
 
 📌 Netflix Premium Subscription
 🏢 Netflix
@@ -102,8 +119,9 @@ Bot sẽ tự động gửi thông báo:
 - `/start` hoặc `/help` - Hướng dẫn sử dụng
 - `/status` - Kiểm tra trạng thái bot
 
-## 🖼️ Loại hóa đơn support
+## 🖼️ Loại input support
 
+### Ảnh 📸
 - ✅ Hóa đơn điện, nước, internet
 - ✅ Bill subscription (Netflix, Spotify, etc.)
 - ✅ Hóa đơn mua sắm online (Shopee, Lazada)
@@ -112,12 +130,34 @@ Bot sẽ tự động gửi thông báo:
 - ✅ Screenshot email hóa đơn
 - ✅ Photo bill giấy
 
+### Text 📝
+- ✅ Copy từ email confirmation
+- ✅ SMS thông báo từ bank
+- ✅ Forward message từ shop/service
+- ✅ Text từ bill PDF
+- ✅ Chat message về thanh toán
+- ✅ Bất kỳ text nào có thông tin: tên, số tiền, ngày hết hạn
+
 ## 💡 Tips
 
+### Cho ảnh:
 - **Ảnh rõ nét**: Đảm bảo text trên bill rõ ràng
 - **Đủ sáng**: Chụp dưới ánh sáng tốt
 - **Full bill**: Chụp toàn bộ hóa đơn, không crop
+
+### Cho text:
+- **Đủ thông tin**: Cần ít nhất tên dịch vụ + ngày hết hạn
+- **Format tự do**: Không cần format cố định, AI sẽ tự hiểu
+- **Ví dụ tốt**:
+  ```
+  Netflix Premium monthly
+  Thanh toán: 299,000đ
+  Hết hạn 05/02/2025
+  ```
+
+### Chung:
 - **Ngôn ngữ**: Support cả tiếng Việt và tiếng Anh
+- **Mix cũng OK**: "Netflix Premium, 299k VNĐ, expire 05/02/2025"
 
 ## 🔧 Troubleshooting
 
