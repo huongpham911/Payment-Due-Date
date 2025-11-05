@@ -15,8 +15,8 @@ class NotificationScheduler {
             return;
         }
 
-        // Lấy cron expression từ env hoặc dùng mặc định (9:00 AM mỗi ngày)
-        const cronExpression = process.env.NOTIFICATION_CHECK_INTERVAL || '0 9 * * *';
+        // Chạy mỗi giờ để catch 2h reminders (env có thể override)
+        const cronExpression = process.env.NOTIFICATION_CHECK_INTERVAL || '0 * * * *';
 
         console.log(`Starting notification scheduler with cron: ${cronExpression}`);
 
