@@ -45,42 +45,45 @@ class NotificationScheduler {
     // Kiểm tra và gửi thông báo
     async checkAndNotify() {
         try {
-            // Lấy reminder days từ settings (mặc định: 7, 3, 1, 0 ngày trước)
+            // Lấy reminder settings
             const settingsData = await dbOperations.getSetting('reminder_days');
             const reminderDays = settingsData ? JSON.parse(settingsData) : [7, 3, 1, 0];
 
-            console.log(`Checking for payments with reminder days: ${reminderDays.join(', ')}`);
+            const remind2hoursData = await dbOperations.getSetting('remind_2hours');
+            const remind2hours = remind2hoursData ? JSON.parse(remind2hoursData) : true;
 
-            // Lấy tất cả payments pending
+            console.log(`Checking payments - Days: ${reminderDays.join(', ')}, 2h before: ${remind2hours}`);
+
             const allPayments = await dbOperations.getAllPayments();
             const pendingPayments = allPayments.filter(p => p.status === 'pending');
-
             let notificationCount = 0;
 
-            // Kiểm tra từng payment
             for (const payment of pendingPayments) {
                 const daysUntilDue = this.calculateDaysUntilDue(payment.due_date);
+                const lastNotified = payment.last_notified_days || -1;
 
-                // Kiểm tra xem có cần nhắc nhở không
-                if (reminderDays.includes(daysUntilDue)) {
-                    // Kiểm tra xem đã nhắc nhở cho mốc này chưa
-                    const lastNotified = payment.last_notified_days || -1;
+                // Check day-based reminders
+                if (reminderDays.includes(daysUntilDue) && lastNotified !== daysUntilDue) {
+                    console.log(`Sending day notification: ${payment.title} (${daysUntilDue} days)`);
+                    const sent = await telegramBot.sendPaymentAlert(payment, daysUntilDue);
+                    if (sent) {
+                        await dbOperations.updatePayment(payment.id, { last_notified_days: daysUntilDue });
+                        notificationCount++;
+                    }
+                    await this.delay(1000);
+                }
 
-                    if (lastNotified !== daysUntilDue) {
-                        console.log(`Sending notification for: ${payment.title} (Due in ${daysUntilDue} days)`);
+                // Check 2-hour-before reminder (if expiry_datetime exists)
+                if (remind2hours && payment.expiry_datetime) {
+                    const hoursUntilExpiry = this.calculateHoursUntilExpiry(payment.expiry_datetime);
 
-                        // Gửi thông báo qua Telegram
-                        const sent = await telegramBot.sendPaymentAlert(payment, daysUntilDue);
-
+                    if (hoursUntilExpiry >= 1.5 && hoursUntilExpiry <= 2.5 && !payment.notified_2hours) {
+                        console.log(`Sending 2h reminder: ${payment.title}`);
+                        const sent = await telegramBot.sendPaymentAlert(payment, '2 giờ');
                         if (sent) {
-                            // Cập nhật last_notified_days
-                            await dbOperations.updatePayment(payment.id, {
-                                last_notified_days: daysUntilDue
-                            });
-                            console.log(`✓ Notification sent for payment ID: ${payment.id}`);
+                            await dbOperations.updatePayment(payment.id, { notified_2hours: 1 });
                             notificationCount++;
                         }
-
                         await this.delay(1000);
                     }
                 }
@@ -90,6 +93,15 @@ class NotificationScheduler {
         } catch (error) {
             console.error('Error in notification scheduler:', error.message);
         }
+    }
+
+    // Tính số giờ đến hạn
+    calculateHoursUntilExpiry(expiryDatetime) {
+        const now = new Date();
+        const expiry = new Date(expiryDatetime);
+        const diffMs = expiry - now;
+        const diffHours = diffMs / (1000 * 60 * 60);
+        return diffHours;
     }
 
     // Tính số ngày đến hạn

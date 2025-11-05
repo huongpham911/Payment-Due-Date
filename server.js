@@ -126,7 +126,7 @@ app.get('/api/payments/:id', async (req, res) => {
 // Tạo payment mới
 app.post('/api/payments', async (req, res) => {
     try {
-        let { title, description, amount, due_date, brand, category } = req.body;
+        let { title, description, amount, due_date, brand, category, purchase_date, expiry_time } = req.body;
 
         // Validate
         if (!title || !due_date) {
@@ -134,6 +134,12 @@ app.post('/api/payments', async (req, res) => {
                 success: false,
                 message: 'Title and due_date are required'
             });
+        }
+
+        // Tạo expiry_datetime từ due_date và expiry_time
+        let expiry_datetime = null;
+        if (expiry_time) {
+            expiry_datetime = `${due_date} ${expiry_time}:00`;
         }
 
         // Tự động phát hiện brand nếu không được cung cấp
@@ -159,7 +165,9 @@ app.post('/api/payments', async (req, res) => {
                     amount,
                     due_date,
                     brand,
-                    category
+                    category,
+                    purchase_date,
+                    expiry_datetime
                 });
             } catch (error) {
                 console.error('Failed to create Google Calendar event:', error.message);
@@ -174,7 +182,9 @@ app.post('/api/payments', async (req, res) => {
             due_date,
             google_event_id,
             brand,
-            category
+            category,
+            purchase_date,
+            expiry_datetime
         });
 
         // Gửi thông báo qua Telegram

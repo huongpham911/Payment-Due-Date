@@ -64,6 +64,9 @@ function migrateDatabase() {
         const hasBrand = rows.some(row => row.name === 'brand');
         const hasCategory = rows.some(row => row.name === 'category');
         const hasLastNotifiedDays = rows.some(row => row.name === 'last_notified_days');
+        const hasPurchaseDate = rows.some(row => row.name === 'purchase_date');
+        const hasExpiryDatetime = rows.some(row => row.name === 'expiry_datetime');
+        const hasNotified2hours = rows.some(row => row.name === 'notified_2hours');
 
         // Thêm cột brand nếu chưa có
         if (!hasBrand) {
@@ -97,6 +100,39 @@ function migrateDatabase() {
                 }
             });
         }
+
+        // Thêm cột purchase_date nếu chưa có
+        if (!hasPurchaseDate) {
+            db.run('ALTER TABLE payments ADD COLUMN purchase_date DATE', (err) => {
+                if (err) {
+                    console.error('Error adding purchase_date column:', err.message);
+                } else {
+                    console.log('✓ Added purchase_date column to payments table');
+                }
+            });
+        }
+
+        // Thêm cột expiry_datetime nếu chưa có
+        if (!hasExpiryDatetime) {
+            db.run('ALTER TABLE payments ADD COLUMN expiry_datetime DATETIME', (err) => {
+                if (err) {
+                    console.error('Error adding expiry_datetime column:', err.message);
+                } else {
+                    console.log('✓ Added expiry_datetime column to payments table');
+                }
+            });
+        }
+
+        // Thêm cột notified_2hours nếu chưa có
+        if (!hasNotified2hours) {
+            db.run('ALTER TABLE payments ADD COLUMN notified_2hours INTEGER DEFAULT 0', (err) => {
+                if (err) {
+                    console.error('Error adding notified_2hours column:', err.message);
+                } else {
+                    console.log('✓ Added notified_2hours column to payments table');
+                }
+            });
+        }
     });
 }
 
@@ -105,11 +141,11 @@ const dbOperations = {
     // Thêm payment mới
     addPayment: (payment) => {
         return new Promise((resolve, reject) => {
-            const { title, description, amount, due_date, google_event_id, brand, category } = payment;
+            const { title, description, amount, due_date, google_event_id, brand, category, purchase_date, expiry_datetime } = payment;
             db.run(
-                `INSERT INTO payments (title, description, amount, due_date, google_event_id, brand, category)
-                 VALUES (?, ?, ?, ?, ?, ?, ?)`,
-                [title, description, amount, due_date, google_event_id, brand, category],
+                `INSERT INTO payments (title, description, amount, due_date, google_event_id, brand, category, purchase_date, expiry_datetime)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                [title, description, amount, due_date, google_event_id, brand, category, purchase_date, expiry_datetime],
                 function(err) {
                     if (err) reject(err);
                     else resolve({ id: this.lastID, ...payment });

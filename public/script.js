@@ -635,3 +635,32 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
+
+// Update saveReminderSettings to include 2h option
+const originalSaveReminderSettings = saveReminderSettings;
+saveReminderSettings = async function() {
+    try {
+        const reminderDays = [];
+        if (document.getElementById('remind7days').checked) reminderDays.push(7);
+        if (document.getElementById('remind3days').checked) reminderDays.push(3);
+        if (document.getElementById('remind1day').checked) reminderDays.push(1);
+        if (document.getElementById('remind0days').checked) reminderDays.push(0);
+        
+        const remind2hours = document.getElementById('remind2hours').checked;
+        
+        await Promise.all([
+            apiCall('/api/settings/reminders', {
+                method: 'POST',
+                body: JSON.stringify({ reminderDays })
+            }),
+            apiCall('/api/settings', {
+                method: 'POST', 
+                body: JSON.stringify({ remind_2hours: remind2hours })
+            })
+        ]);
+        
+        showToast('✅ Đã lưu cài đặt nhắc nhở!', 'success');
+    } catch (error) {
+        showToast('❌ Lỗi khi lưu cài đặt', 'error');
+    }
+};

@@ -75,13 +75,25 @@
 
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="amount">Số tiền (VNĐ)</label>
-                            <input type="number" id="amount" name="amount" placeholder="1000000" step="1000">
+                            <label for="purchase_date">Ngày mua</label>
+                            <input type="date" id="purchase_date" name="purchase_date">
                         </div>
 
                         <div class="form-group">
+                            <label for="amount">Số tiền (VNĐ)</label>
+                            <input type="number" id="amount" name="amount" placeholder="1000000" step="1000">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
                             <label for="due_date">Hạn thanh toán *</label>
                             <input type="date" id="due_date" name="due_date" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="expiry_time">Giờ hết hạn</label>
+                            <input type="time" id="expiry_time" name="expiry_time" placeholder="23:59">
                         </div>
                     </div>
 
@@ -116,6 +128,7 @@
                         <label><input type="checkbox" id="remind3days" checked> 3 ngày trước</label>
                         <label><input type="checkbox" id="remind1day" checked> 1 ngày trước</label>
                         <label><input type="checkbox" id="remind0days" checked> Ngày đến hạn</label>
+                        <label><input type="checkbox" id="remind2hours" checked> 2 giờ trước giờ hết hạn</label>
                     </div>
                     <button id="saveSettingsBtn" class="btn btn-primary">💾 Lưu cài đặt</button>
                 </div>
