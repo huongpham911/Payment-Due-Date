@@ -334,3 +334,181 @@ Your Name
 - Telegram Bot API
 - Node.js & Express
 - SQLite
+
+## ✨ Tính năng nổi bật
+
+### 🤖 AI Bill Scanning (MỚI!)
+- **Gửi ảnh bill** → Bot tự động đọc và tạo reminder
+- **Paste text hóa đơn** → AI phân tích ngay lập tức
+- Support: Netflix, Shopee, Điện, Nước, và hơn 40+ brands
+- Powered by Claude 3.5 Sonnet Vision
+
+### 🎯 Brand Classification
+- Tự động phát hiện 40+ brands phổ biến
+- 11 categories: AI Services, Entertainment, Utilities, v.v.
+- Lọc theo brand, thống kê chi tiêu
+
+### 🔔 Smart Reminders
+- Nhắc nhiều lần: 7d, 3d, 1d, ngày hết hạn, 2h trước
+- Tùy chỉnh thời điểm nhắc
+- Không bao giờ quên thanh toán!
+
+### 📅 Multi-platform
+- **Telegram Bot**: Nhận thông báo realtime
+- **Google Calendar**: Sync tự động
+- **Web Dashboard**: Quản lý dễ dàng
+
+## 🚀 Quick Start
+
+### 1. Setup môi trường
+
+```bash
+# Clone repo
+git clone https://github.com/huongpham911/Payment-Due-Date.git
+cd Payment-Due-Date
+
+# Install dependencies
+npm install
+
+# Tạo file .env
+cp .env.example .env
+```
+
+### 2. Config Telegram Bot (Bắt buộc)
+
+```bash
+# Tạo bot tại @BotFather
+# Copy token và chat ID vào .env
+TELEGRAM_BOT_TOKEN=123456:ABC-DEF...
+TELEGRAM_CHAT_ID=your_chat_id
+```
+
+### 3. Config Claude API (Để dùng Bill Scanning)
+
+```bash
+# Lấy API key tại: https://console.anthropic.com/
+ANTHROPIC_API_KEY=sk-ant-xxxxx
+```
+
+### 4. Start server
+
+```bash
+npm start
+# Truy cập: http://localhost:3000
+```
+
+## 📖 Hướng dẫn sử dụng
+
+### Cách 1: Gửi ảnh bill qua Telegram (NHANH NHẤT!)
+
+```
+1. Chụp ảnh hóa đơn
+2. Gửi cho bot
+3. Bot tự động tạo reminder
+4. Nhận cảnh báo trước hạn!
+```
+
+### Cách 2: Paste text hóa đơn
+
+```
+You: Netflix Premium
+     299,000 VNĐ
+     Hết hạn: 05/02/2025
+
+Bot: ✅ Đã tạo reminder!
+```
+
+### Cách 3: Web Dashboard
+
+```
+1. Vào http://localhost:3000
+2. Điền form: Tên, Brand, Số tiền, Hạn thanh toán
+3. Auto-detect brand từ tên
+4. Lưu và nhận reminder
+```
+
+## 📸 Demo
+
+**Gửi ảnh bill:**
+```
+[Ảnh hóa đơn Netflix]
+Bot: 📸 Đang phân tích...
+Bot: ✅ Đã tạo nhắc nhở!
+     📌 Netflix Premium
+     💰 299,000 VNĐ
+     📅 Hạn: 05/02/2025
+```
+
+**Nhận cảnh báo tự động:**
+```
+🚨 [7 ngày trước]
+⚠️ [3 ngày trước]
+📅 [1 ngày trước]
+⏰ [2 giờ trước] ← Cảnh báo phút chót!
+```
+
+## 🛠️ Tech Stack
+
+- **Backend**: Node.js + Express
+- **Database**: SQLite3
+- **AI**: Claude 3.5 Sonnet (Vision + Text)
+- **Notifications**: Telegram Bot API
+- **Calendar**: Google Calendar API
+- **Scheduler**: node-cron
+
+## 📂 Cấu trúc project
+
+```
+├── server.js              # Express server
+├── database.js            # SQLite operations
+├── billParser.js          # AI bill parsing (Claude)
+├── brandDetector.js       # Auto brand detection
+├── telegramBot.js         # Telegram bot handlers
+├── googleCalendar.js      # Google Calendar sync
+├── notificationScheduler.js  # Cron jobs
+└── public/               # Frontend
+    ├── index.html
+    ├── script.js
+    └── style.css
+```
+
+## 📚 Documentation
+
+- [🔥 Bill Scanning Guide](./BILL_SCANNING.md) - Hướng dẫn chi tiết AI scanning
+- [🎯 Brand List](./brandDetector.js#L8) - Danh sách 40+ brands support
+- [⚙️ .env.example](./.env.example) - Config mẫu
+
+## 💡 Use Cases
+
+✅ **Subscription Management**: Netflix, Spotify, YouTube Premium  
+✅ **Utilities**: Điện, nước, internet, điện thoại  
+✅ **E-commerce**: Shopee, Lazada installments  
+✅ **Insurance**: Bảo hiểm xe, nhà, sức khỏe  
+✅ **Banking**: Credit card, loan payments  
+✅ **Education**: Coursera, Udemy courses  
+
+## 🎯 Roadmap
+
+- [ ] Support PDF bills
+- [ ] Recurring payment auto-creation
+- [ ] Multi-user support
+- [ ] Mobile app
+- [ ] Email forwarding to bot
+- [ ] Bank SMS integration
+
+## 🤝 Contributing
+
+Pull requests are welcome! For major changes, please open an issue first.
+
+## 📝 License
+
+MIT License - Free to use!
+
+## 🆘 Support
+
+- Issues: [GitHub Issues](https://github.com/huongpham911/Payment-Due-Date/issues)
+- Documentation: [BILL_SCANNING.md](./BILL_SCANNING.md)
+
+---
+
+**Made with ❤️ for people who forget to pay bills on time!**
