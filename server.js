@@ -11,6 +11,9 @@ const brandDetector = require('./brandDetector');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Inject database operations into Telegram bot
+telegramBot.setDbOperations(dbOperations);
+
 // Middleware
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
