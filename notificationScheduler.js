@@ -45,43 +45,48 @@ class NotificationScheduler {
     // Kiểm tra và gửi thông báo
     async checkAndNotify() {
         try {
-            // Lấy số ngày cảnh báo trước từ env (mặc định là 2 ngày)
-            const daysAhead = parseInt(process.env.NOTIFICATION_DAYS_BEFORE) || 2;
+            // Lấy reminder days từ settings (mặc định: 7, 3, 1, 0 ngày trước)
+            const settingsData = await dbOperations.getSetting('reminder_days');
+            const reminderDays = settingsData ? JSON.parse(settingsData) : [7, 3, 1, 0];
 
-            console.log(`Checking for payments due within ${daysAhead} days...`);
+            console.log(`Checking for payments with reminder days: ${reminderDays.join(', ')}`);
 
-            // Lấy các payments sắp đến hạn và chưa được thông báo
-            const upcomingPayments = await dbOperations.getUpcomingPayments(daysAhead);
+            // Lấy tất cả payments pending
+            const allPayments = await dbOperations.getAllPayments();
+            const pendingPayments = allPayments.filter(p => p.status === 'pending');
 
-            if (upcomingPayments.length === 0) {
-                console.log('No upcoming payments to notify.');
-                return;
-            }
+            let notificationCount = 0;
 
-            console.log(`Found ${upcomingPayments.length} payment(s) to notify.`);
-
-            // Gửi thông báo cho từng payment
-            for (const payment of upcomingPayments) {
+            // Kiểm tra từng payment
+            for (const payment of pendingPayments) {
                 const daysUntilDue = this.calculateDaysUntilDue(payment.due_date);
 
-                console.log(`Sending notification for payment: ${payment.title} (Due in ${daysUntilDue} days)`);
+                // Kiểm tra xem có cần nhắc nhở không
+                if (reminderDays.includes(daysUntilDue)) {
+                    // Kiểm tra xem đã nhắc nhở cho mốc này chưa
+                    const lastNotified = payment.last_notified_days || -1;
 
-                // Gửi thông báo qua Telegram
-                const sent = await telegramBot.sendPaymentAlert(payment, daysUntilDue);
+                    if (lastNotified !== daysUntilDue) {
+                        console.log(`Sending notification for: ${payment.title} (Due in ${daysUntilDue} days)`);
 
-                if (sent) {
-                    // Đánh dấu đã thông báo
-                    await dbOperations.markAsNotified(payment.id);
-                    console.log(`✓ Notification sent for payment ID: ${payment.id}`);
-                } else {
-                    console.log(`✗ Failed to send notification for payment ID: ${payment.id}`);
+                        // Gửi thông báo qua Telegram
+                        const sent = await telegramBot.sendPaymentAlert(payment, daysUntilDue);
+
+                        if (sent) {
+                            // Cập nhật last_notified_days
+                            await dbOperations.updatePayment(payment.id, {
+                                last_notified_days: daysUntilDue
+                            });
+                            console.log(`✓ Notification sent for payment ID: ${payment.id}`);
+                            notificationCount++;
+                        }
+
+                        await this.delay(1000);
+                    }
                 }
-
-                // Delay nhỏ giữa các tin nhắn để tránh spam
-                await this.delay(1000);
             }
 
-            console.log('Notification check completed.');
+            console.log(`Notification check completed. Sent ${notificationCount} notification(s).`);
         } catch (error) {
             console.error('Error in notification scheduler:', error.message);
         }

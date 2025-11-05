@@ -507,3 +507,30 @@ process.on('SIGTERM', () => {
     notificationScheduler.stop();
     process.exit(0);
 });
+
+// ===== SETTINGS ROUTES =====
+
+// Get reminder settings
+app.get('/api/settings/reminders', async (req, res) => {
+    try {
+        const settings = await dbOperations.getSetting('reminder_days');
+        const reminderDays = settings ? JSON.parse(settings) : [7, 3, 1, 0];
+        res.json({ success: true, data: reminderDays });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// Save reminder settings
+app.post('/api/settings/reminders', async (req, res) => {
+    try {
+        const { reminderDays } = req.body;
+        if (!Array.isArray(reminderDays)) {
+            return res.status(400).json({ success: false, message: 'reminderDays must be an array' });
+        }
+        await dbOperations.saveSetting('reminder_days', JSON.stringify(reminderDays));
+        res.json({ success: true, message: 'Settings saved successfully' });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+});

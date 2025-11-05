@@ -63,6 +63,7 @@ function migrateDatabase() {
 
         const hasBrand = rows.some(row => row.name === 'brand');
         const hasCategory = rows.some(row => row.name === 'category');
+        const hasLastNotifiedDays = rows.some(row => row.name === 'last_notified_days');
 
         // Thêm cột brand nếu chưa có
         if (!hasBrand) {
@@ -82,6 +83,17 @@ function migrateDatabase() {
                     console.error('Error adding category column:', err.message);
                 } else {
                     console.log('✓ Added category column to payments table');
+                }
+            });
+        }
+
+        // Thêm cột last_notified_days nếu chưa có
+        if (!hasLastNotifiedDays) {
+            db.run('ALTER TABLE payments ADD COLUMN last_notified_days INTEGER', (err) => {
+                if (err) {
+                    console.error('Error adding last_notified_days column:', err.message);
+                } else {
+                    console.log('✓ Added last_notified_days column to payments table');
                 }
             });
         }

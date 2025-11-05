@@ -584,3 +584,54 @@ document.addEventListener('DOMContentLoaded', () => {
     loadBrandFilter();
 });
 
+
+// ===== SETTINGS MANAGEMENT =====
+
+// Load reminder settings
+async function loadReminderSettings() {
+    try {
+        const result = await apiCall('/api/settings/reminders');
+        if (result.success) {
+            const days = result.data;
+            document.getElementById('remind7days').checked = days.includes(7);
+            document.getElementById('remind3days').checked = days.includes(3);
+            document.getElementById('remind1day').checked = days.includes(1);
+            document.getElementById('remind0days').checked = days.includes(0);
+        }
+    } catch (error) {
+        console.error('Error loading settings:', error);
+    }
+}
+
+// Save reminder settings
+async function saveReminderSettings() {
+    try {
+        const reminderDays = [];
+        if (document.getElementById('remind7days').checked) reminderDays.push(7);
+        if (document.getElementById('remind3days').checked) reminderDays.push(3);
+        if (document.getElementById('remind1day').checked) reminderDays.push(1);
+        if (document.getElementById('remind0days').checked) reminderDays.push(0);
+        
+        const result = await apiCall('/api/settings/reminders', {
+            method: 'POST',
+            body: JSON.stringify({ reminderDays })
+        });
+        
+        if (result.success) {
+            showToast('✅ Đã lưu cài đặt nhắc nhở!', 'success');
+        }
+    } catch (error) {
+        showToast('❌ Lỗi khi lưu cài đặt', 'error');
+    }
+}
+
+// Initialize settings on page load
+document.addEventListener('DOMContentLoaded', () => {
+    loadReminderSettings();
+    
+    const saveBtn = document.getElementById('saveSettingsBtn');
+    if (saveBtn) {
+        saveBtn.addEventListener('click', saveReminderSettings);
+    }
+});
+
