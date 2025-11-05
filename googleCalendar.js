@@ -1,6 +1,7 @@
 const { google } = require('googleapis');
 const fs = require('fs');
 const path = require('path');
+const brandDetector = require('./brandDetector');
 
 class GoogleCalendarService {
     constructor() {
@@ -68,9 +69,30 @@ class GoogleCalendarService {
         }
 
         try {
+            // Tạo summary với brand icon nếu có
+            const brandIcon = payment.brand ? brandDetector.getBrandIcon(payment.brand) : '💰';
+            const summary = `${brandIcon} ${payment.brand || 'Thanh toán'}: ${payment.title}`;
+
+            // Tạo description với brand và category info
+            let description = '';
+            if (payment.brand) {
+                description += `Brand: ${payment.brand}\n`;
+            }
+            if (payment.category) {
+                description += `Category: ${payment.category}\n`;
+            }
+            if (payment.brand || payment.category) {
+                description += '\n';
+            }
+            if (payment.description) {
+                description += `${payment.description}\n\n`;
+            }
+            description += `Số tiền: ${payment.amount ? payment.amount.toLocaleString('vi-VN') + ' VNĐ' : 'N/A'}\n`;
+            description += `Trạng thái: Chưa thanh toán`;
+
             const event = {
-                summary: `💰 Thanh toán: ${payment.title}`,
-                description: `${payment.description || ''}\n\nSố tiền: ${payment.amount ? payment.amount.toLocaleString('vi-VN') + ' VNĐ' : 'N/A'}\nTrạng thái: Chưa thanh toán`,
+                summary: summary,
+                description: description,
                 start: {
                     date: payment.due_date,
                     timeZone: 'Asia/Ho_Chi_Minh',
@@ -108,9 +130,30 @@ class GoogleCalendarService {
         }
 
         try {
+            // Tạo summary với brand icon nếu có
+            const brandIcon = payment.brand ? brandDetector.getBrandIcon(payment.brand) : '💰';
+            const summary = `${brandIcon} ${payment.brand || 'Thanh toán'}: ${payment.title}`;
+
+            // Tạo description với brand và category info
+            let description = '';
+            if (payment.brand) {
+                description += `Brand: ${payment.brand}\n`;
+            }
+            if (payment.category) {
+                description += `Category: ${payment.category}\n`;
+            }
+            if (payment.brand || payment.category) {
+                description += '\n';
+            }
+            if (payment.description) {
+                description += `${payment.description}\n\n`;
+            }
+            description += `Số tiền: ${payment.amount ? payment.amount.toLocaleString('vi-VN') + ' VNĐ' : 'N/A'}\n`;
+            description += `Trạng thái: ${payment.status === 'paid' ? 'Đã thanh toán' : 'Chưa thanh toán'}`;
+
             const event = {
-                summary: `💰 Thanh toán: ${payment.title}`,
-                description: `${payment.description || ''}\n\nSố tiền: ${payment.amount ? payment.amount.toLocaleString('vi-VN') + ' VNĐ' : 'N/A'}\nTrạng thái: ${payment.status === 'paid' ? 'Đã thanh toán' : 'Chưa thanh toán'}`,
+                summary: summary,
+                description: description,
                 start: {
                     date: payment.due_date,
                     timeZone: 'Asia/Ho_Chi_Minh',

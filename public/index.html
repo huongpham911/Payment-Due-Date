@@ -60,6 +60,21 @@
 
                     <div class="form-row">
                         <div class="form-group">
+                            <label for="brand">Brand/Thương hiệu</label>
+                            <input type="text" id="brand" name="brand" placeholder="VD: Netflix, ChatGPT, EVN..." list="brandSuggestions">
+                            <datalist id="brandSuggestions"></datalist>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="category">Danh mục</label>
+                            <select id="category" name="category">
+                                <option value="">-- Tự động phát hiện --</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
                             <label for="amount">Số tiền (VNĐ)</label>
                             <input type="number" id="amount" name="amount" placeholder="1000000" step="1000">
                         </div>
@@ -96,6 +111,9 @@
                 <div class="card-header">
                     <h2>📋 Tất cả khoản thanh toán</h2>
                     <div class="card-actions">
+                        <select id="brandFilter" class="filter-select">
+                            <option value="">Tất cả thương hiệu</option>
+                        </select>
                         <button id="sendSummaryBtn" class="btn btn-secondary">
                             <span class="icon">📊</span>
                             Gửi báo cáo
@@ -131,6 +149,20 @@
                 <div class="form-group">
                     <label for="edit_description">Mô tả</label>
                     <textarea id="edit_description" name="description" rows="3"></textarea>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="edit_brand">Brand/Thương hiệu</label>
+                        <input type="text" id="edit_brand" name="brand" list="brandSuggestions">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="edit_category">Danh mục</label>
+                        <select id="edit_category" name="category">
+                            <option value="">-- Tự động --</option>
+                        </select>
+                    </div>
                 </div>
 
                 <div class="form-row">

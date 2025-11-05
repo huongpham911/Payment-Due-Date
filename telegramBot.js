@@ -1,4 +1,5 @@
 const TelegramBot = require('node-telegram-bot-api');
+const brandDetector = require('./brandDetector');
 
 class TelegramBotService {
     constructor() {
@@ -53,6 +54,11 @@ class TelegramBotService {
                        daysUntilDue === 1 ? 'NGÀY MAI' :
                        `${daysUntilDue} NGÀY NỮA`;
 
+        // Lấy icon cho brand
+        const brandIcon = payment.brand ? brandDetector.getBrandIcon(payment.brand) : '📋';
+        const brandInfo = payment.brand ? `${brandIcon} <b>Brand:</b> ${payment.brand}\n` : '';
+        const categoryInfo = payment.category ? `📂 <b>Category:</b> ${payment.category}\n` : '';
+
         const message = `
 ${emoji} <b>CẢNH BÁO THANH TOÁN</b> ${emoji}
 
@@ -60,7 +66,7 @@ ${emoji} <b>CẢNH BÁO THANH TOÁN</b> ${emoji}
 
 ━━━━━━━━━━━━━━━━━━━━━━
 
-📌 <b>Tiêu đề:</b> ${payment.title}
+${brandInfo}${categoryInfo}📌 <b>Tiêu đề:</b> ${payment.title}
 
 ${payment.description ? `📝 <b>Mô tả:</b> ${payment.description}\n\n` : ''}💰 <b>Số tiền:</b> ${payment.amount ? payment.amount.toLocaleString('vi-VN') + ' VNĐ' : 'Chưa xác định'}
 
@@ -82,12 +88,16 @@ ${payment.description ? `📝 <b>Mô tả:</b> ${payment.description}\n\n` : ''}
             return false;
         }
 
+        const brandIcon = payment.brand ? brandDetector.getBrandIcon(payment.brand) : '📋';
+        const brandInfo = payment.brand ? `${brandIcon} <b>Brand:</b> ${payment.brand}\n` : '';
+        const categoryInfo = payment.category ? `📂 <b>Category:</b> ${payment.category}\n` : '';
+
         const message = `
 ✅ <b>THÊM KHOẢN THANH TOÁN MỚI</b>
 
 <b>${payment.title}</b>
 
-${payment.description ? `📝 ${payment.description}\n` : ''}💰 Số tiền: ${payment.amount ? payment.amount.toLocaleString('vi-VN') + ' VNĐ' : 'Chưa xác định'}
+${brandInfo}${categoryInfo}${payment.description ? `📝 ${payment.description}\n` : ''}💰 Số tiền: ${payment.amount ? payment.amount.toLocaleString('vi-VN') + ' VNĐ' : 'Chưa xác định'}
 📆 Hạn thanh toán: ${this.formatDate(payment.due_date)}
 
 ✓ Đã đồng bộ với Google Calendar
@@ -144,20 +154,38 @@ ${statusEmoji} <b>Trạng thái:</b> ${statusText}
             return await this.sendMessage(message);
         }
 
+        // Nhóm payments theo brand
+        const groupedByBrand = {};
+        payments.forEach(payment => {
+            const brand = payment.brand || 'Chưa phân loại';
+            if (!groupedByBrand[brand]) {
+                groupedByBrand[brand] = [];
+            }
+            groupedByBrand[brand].push(payment);
+        });
+
         let message = '📊 <b>BÁO CÁO CÁC KHOẢN THANH TOÁN SẮP ĐẾN HẠN</b>\n\n';
 
-        payments.forEach((payment, index) => {
-            const daysLeft = this.calculateDaysUntilDue(payment.due_date);
-            const urgencyEmoji = daysLeft === 0 ? '🚨' : daysLeft === 1 ? '⚠️' : '📅';
+        // Hiển thị theo từng brand
+        Object.entries(groupedByBrand).forEach(([brand, brandPayments]) => {
+            const brandIcon = brand !== 'Chưa phân loại' ? brandDetector.getBrandIcon(brand) : '📋';
+            message += `${brandIcon} <b>${brand}</b>\n`;
+            message += `━━━━━━━━━━━━━━━━━━━━━━\n`;
 
-            message += `${urgencyEmoji} <b>${index + 1}. ${payment.title}</b>\n`;
-            message += `   💰 ${payment.amount ? payment.amount.toLocaleString('vi-VN') + ' VNĐ' : 'N/A'}\n`;
-            message += `   📆 ${this.formatDate(payment.due_date)} (còn ${daysLeft} ngày)\n\n`;
+            brandPayments.forEach((payment) => {
+                const daysLeft = this.calculateDaysUntilDue(payment.due_date);
+                const urgencyEmoji = daysLeft === 0 ? '🚨' : daysLeft === 1 ? '⚠️' : '📅';
+
+                message += `${urgencyEmoji} ${payment.title}\n`;
+                message += `   💰 ${payment.amount ? payment.amount.toLocaleString('vi-VN') + ' VNĐ' : 'N/A'}\n`;
+                message += `   📆 ${this.formatDate(payment.due_date)} (còn ${daysLeft} ngày)\n\n`;
+            });
         });
 
         const totalAmount = payments.reduce((sum, p) => sum + (p.amount || 0), 0);
         message += `━━━━━━━━━━━━━━━━━━━━━━\n`;
-        message += `💵 <b>Tổng số tiền:</b> ${totalAmount.toLocaleString('vi-VN')} VNĐ`;
+        message += `💵 <b>Tổng số tiền:</b> ${totalAmount.toLocaleString('vi-VN')} VNĐ\n`;
+        message += `📝 <b>Tổng số khoản:</b> ${payments.length}`;
 
         return await this.sendMessage(message);
     }

@@ -517,3 +517,70 @@ function escapeHtml(text) {
     div.textContent = text;
     return div.innerHTML;
 }
+
+// ===== BRAND MANAGEMENT =====
+
+// Load brand suggestions and categories
+async function loadBrandOptions() {
+    try {
+        const [brandsRes, categoriesRes] = await Promise.all([
+            apiCall('/api/brands/available'),
+            apiCall('/api/categories/available')
+        ]);
+
+        if (brandsRes.success) {
+            const datalist = document.getElementById('brandSuggestions');
+            datalist.innerHTML = brandsRes.data.map(b => 
+                `<option value="${b.name}">${b.icon} ${b.name} (${b.category})</option>`
+            ).join('');
+        }
+
+        if (categoriesRes.success) {
+            const selects = [document.getElementById('category'), document.getElementById('edit_category')];
+            selects.forEach(select => {
+                select.innerHTML = '<option value="">-- Tự động phát hiện --</option>' +
+                    categoriesRes.data.map(c => 
+                        `<option value="${c.name}">${c.icon} ${c.name}</option>`
+                    ).join('');
+            });
+        }
+    } catch (error) {
+        console.error('Error loading brand options:', error);
+    }
+}
+
+// Load brands for filter
+async function loadBrandFilter() {
+    try {
+        const result = await apiCall('/api/brands');
+        if (result.success && result.data.length > 0) {
+            const filter = document.getElementById('brandFilter');
+            filter.innerHTML = '<option value="">Tất cả thương hiệu</option>' +
+                result.data.map(b => 
+                    `<option value="${b.brand}">${b.brand} (${b.count})</option>`
+                ).join('');
+            
+            filter.addEventListener('change', (e) => filterByBrand(e.target.value));
+        }
+    } catch (error) {
+        console.error('Error loading brand filter:', error);
+    }
+}
+
+// Filter payments by brand
+async function filterByBrand(brand) {
+    if (!brand) {
+        renderPayments(allPayments);
+    } else {
+        const filtered = allPayments.filter(p => p.brand === brand);
+        renderPayments(filtered);
+    }
+}
+
+// Initialize brand features on page load
+const originalDOMContentLoaded = document.addEventListener('DOMContentLoaded', () => {});
+document.addEventListener('DOMContentLoaded', () => {
+    loadBrandOptions();
+    loadBrandFilter();
+});
+

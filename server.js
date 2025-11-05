@@ -6,6 +6,7 @@ const { dbOperations } = require('./database');
 const googleCalendar = require('./googleCalendar');
 const telegramBot = require('./telegramBot');
 const notificationScheduler = require('./notificationScheduler');
+const brandDetector = require('./brandDetector');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -125,7 +126,7 @@ app.get('/api/payments/:id', async (req, res) => {
 // Tạo payment mới
 app.post('/api/payments', async (req, res) => {
     try {
-        const { title, description, amount, due_date } = req.body;
+        let { title, description, amount, due_date, brand, category } = req.body;
 
         // Validate
         if (!title || !due_date) {
@@ -133,6 +134,18 @@ app.post('/api/payments', async (req, res) => {
                 success: false,
                 message: 'Title and due_date are required'
             });
+        }
+
+        // Tự động phát hiện brand nếu không được cung cấp
+        if (!brand || !category) {
+            const detected = brandDetector.detectBrandFromPayment({
+                title,
+                description,
+                brand,
+                category
+            });
+            brand = brand || detected.brand;
+            category = category || detected.category;
         }
 
         let google_event_id = null;
@@ -144,7 +157,9 @@ app.post('/api/payments', async (req, res) => {
                     title,
                     description,
                     amount,
-                    due_date
+                    due_date,
+                    brand,
+                    category
                 });
             } catch (error) {
                 console.error('Failed to create Google Calendar event:', error.message);
@@ -157,7 +172,9 @@ app.post('/api/payments', async (req, res) => {
             description,
             amount,
             due_date,
-            google_event_id
+            google_event_id,
+            brand,
+            category
         });
 
         // Gửi thông báo qua Telegram
@@ -176,7 +193,7 @@ app.post('/api/payments', async (req, res) => {
 // Cập nhật payment
 app.put('/api/payments/:id', async (req, res) => {
     try {
-        const { title, description, amount, due_date, status } = req.body;
+        let { title, description, amount, due_date, status, brand, category } = req.body;
         const id = req.params.id;
 
         // Lấy payment hiện tại
@@ -192,6 +209,20 @@ app.put('/api/payments/:id', async (req, res) => {
         if (amount !== undefined) updates.amount = amount;
         if (due_date !== undefined) updates.due_date = due_date;
         if (status !== undefined) updates.status = status;
+        if (brand !== undefined) updates.brand = brand;
+        if (category !== undefined) updates.category = category;
+
+        // Tự động phát hiện brand nếu title thay đổi và không có brand mới
+        if (title && !brand) {
+            const detected = brandDetector.detectBrandFromPayment({
+                title: title || currentPayment.title,
+                description: description || currentPayment.description,
+                brand: brand || currentPayment.brand,
+                category: category || currentPayment.category
+            });
+            if (detected.brand) updates.brand = detected.brand;
+            if (detected.category) updates.category = detected.category;
+        }
 
         // Reset notified flag nếu due_date thay đổi
         if (due_date && due_date !== currentPayment.due_date) {
@@ -267,6 +298,97 @@ app.get('/api/payments/upcoming/:days', async (req, res) => {
         const days = parseInt(req.params.days) || 7;
         const payments = await dbOperations.getUpcomingPayments(days);
         res.json({ success: true, data: payments });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// ===== BRAND ROUTES =====
+
+// Lấy tất cả brands
+app.get('/api/brands', async (req, res) => {
+    try {
+        const brands = await dbOperations.getAllBrands();
+        res.json({ success: true, data: brands });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// Lấy tất cả categories
+app.get('/api/categories', async (req, res) => {
+    try {
+        const categories = await dbOperations.getAllCategories();
+        res.json({ success: true, data: categories });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// Lấy danh sách brands có sẵn từ brand detector
+app.get('/api/brands/available', (req, res) => {
+    try {
+        const brands = brandDetector.getAllAvailableBrands();
+        res.json({ success: true, data: brands });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// Lấy danh sách categories có sẵn từ brand detector
+app.get('/api/categories/available', (req, res) => {
+    try {
+        const categories = brandDetector.getAllAvailableCategories();
+        res.json({ success: true, data: categories });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// Lấy payments theo brand
+app.get('/api/brands/:brand/payments', async (req, res) => {
+    try {
+        const brand = decodeURIComponent(req.params.brand);
+        const payments = await dbOperations.getPaymentsByBrand(brand);
+        res.json({ success: true, data: payments });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// Lấy payments theo category
+app.get('/api/categories/:category/payments', async (req, res) => {
+    try {
+        const category = decodeURIComponent(req.params.category);
+        const payments = await dbOperations.getPaymentsByCategory(category);
+        res.json({ success: true, data: payments });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// Lấy thống kê theo brand
+app.get('/api/brands/statistics', async (req, res) => {
+    try {
+        const statistics = await dbOperations.getBrandStatistics();
+        res.json({ success: true, data: statistics });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// Phát hiện brand từ text
+app.post('/api/brands/detect', (req, res) => {
+    try {
+        const { text } = req.body;
+        if (!text) {
+            return res.status(400).json({
+                success: false,
+                message: 'Text is required'
+            });
+        }
+        const detected = brandDetector.detectBrand(text);
+        res.json({ success: true, data: detected });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }

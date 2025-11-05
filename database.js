@@ -24,6 +24,8 @@ function initDatabase() {
             status TEXT DEFAULT 'pending',
             google_event_id TEXT,
             notified INTEGER DEFAULT 0,
+            brand TEXT,
+            category TEXT,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )
@@ -32,6 +34,8 @@ function initDatabase() {
             console.error('Error creating table:', err.message);
         } else {
             console.log('Database table initialized successfully.');
+            // Chạy migration để thêm các cột mới cho database cũ
+            migrateDatabase();
         }
     });
 
@@ -48,16 +52,52 @@ function initDatabase() {
     });
 }
 
+// Migration để thêm cột brand và category cho database cũ
+function migrateDatabase() {
+    // Kiểm tra xem cột brand đã tồn tại chưa
+    db.all("PRAGMA table_info(payments)", [], (err, rows) => {
+        if (err) {
+            console.error('Error checking table structure:', err.message);
+            return;
+        }
+
+        const hasBrand = rows.some(row => row.name === 'brand');
+        const hasCategory = rows.some(row => row.name === 'category');
+
+        // Thêm cột brand nếu chưa có
+        if (!hasBrand) {
+            db.run('ALTER TABLE payments ADD COLUMN brand TEXT', (err) => {
+                if (err) {
+                    console.error('Error adding brand column:', err.message);
+                } else {
+                    console.log('✓ Added brand column to payments table');
+                }
+            });
+        }
+
+        // Thêm cột category nếu chưa có
+        if (!hasCategory) {
+            db.run('ALTER TABLE payments ADD COLUMN category TEXT', (err) => {
+                if (err) {
+                    console.error('Error adding category column:', err.message);
+                } else {
+                    console.log('✓ Added category column to payments table');
+                }
+            });
+        }
+    });
+}
+
 // Các hàm helper cho database operations
 const dbOperations = {
     // Thêm payment mới
     addPayment: (payment) => {
         return new Promise((resolve, reject) => {
-            const { title, description, amount, due_date, google_event_id } = payment;
+            const { title, description, amount, due_date, google_event_id, brand, category } = payment;
             db.run(
-                `INSERT INTO payments (title, description, amount, due_date, google_event_id)
-                 VALUES (?, ?, ?, ?, ?)`,
-                [title, description, amount, due_date, google_event_id],
+                `INSERT INTO payments (title, description, amount, due_date, google_event_id, brand, category)
+                 VALUES (?, ?, ?, ?, ?, ?, ?)`,
+                [title, description, amount, due_date, google_event_id, brand, category],
                 function(err) {
                     if (err) reject(err);
                     else resolve({ id: this.lastID, ...payment });
@@ -170,6 +210,85 @@ const dbOperations = {
             db.get('SELECT value FROM settings WHERE key = ?', [key], (err, row) => {
                 if (err) reject(err);
                 else resolve(row ? row.value : null);
+            });
+        });
+    },
+
+    // Lấy tất cả brands duy nhất
+    getAllBrands: () => {
+        return new Promise((resolve, reject) => {
+            const sql = `
+                SELECT DISTINCT brand, category, COUNT(*) as count
+                FROM payments
+                WHERE brand IS NOT NULL AND brand != ''
+                GROUP BY brand, category
+                ORDER BY brand ASC
+            `;
+            db.all(sql, [], (err, rows) => {
+                if (err) reject(err);
+                else resolve(rows);
+            });
+        });
+    },
+
+    // Lấy tất cả categories duy nhất
+    getAllCategories: () => {
+        return new Promise((resolve, reject) => {
+            const sql = `
+                SELECT DISTINCT category, COUNT(*) as count
+                FROM payments
+                WHERE category IS NOT NULL AND category != ''
+                GROUP BY category
+                ORDER BY category ASC
+            `;
+            db.all(sql, [], (err, rows) => {
+                if (err) reject(err);
+                else resolve(rows);
+            });
+        });
+    },
+
+    // Lấy payments theo brand
+    getPaymentsByBrand: (brand) => {
+        return new Promise((resolve, reject) => {
+            const sql = `SELECT * FROM payments WHERE brand = ? ORDER BY due_date ASC`;
+            db.all(sql, [brand], (err, rows) => {
+                if (err) reject(err);
+                else resolve(rows);
+            });
+        });
+    },
+
+    // Lấy payments theo category
+    getPaymentsByCategory: (category) => {
+        return new Promise((resolve, reject) => {
+            const sql = `SELECT * FROM payments WHERE category = ? ORDER BY due_date ASC`;
+            db.all(sql, [category], (err, rows) => {
+                if (err) reject(err);
+                else resolve(rows);
+            });
+        });
+    },
+
+    // Lấy thống kê theo brand
+    getBrandStatistics: () => {
+        return new Promise((resolve, reject) => {
+            const sql = `
+                SELECT
+                    brand,
+                    category,
+                    COUNT(*) as total_payments,
+                    SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending_count,
+                    SUM(CASE WHEN status = 'paid' THEN 1 ELSE 0 END) as paid_count,
+                    SUM(amount) as total_amount
+                FROM payments
+                WHERE brand IS NOT NULL AND brand != ''
+                GROUP BY brand, category
+                ORDER BY total_amount DESC
+            `;
+            db.all(sql, [], (err, rows) => {
+                if (err) reject(err);
+                else resolve(rows);
             });
         });
     }
