@@ -47,13 +47,18 @@ class TelegramBotService {
             await this.handleDocumentMessage(msg);
         });
 
-        // Handle text commands
+        // Handle text commands and bill text
         this.bot.on('message', async (msg) => {
             if (msg.photo || msg.document) return; // Already handled
 
             const text = msg.text;
-            if (text && text.startsWith('/')) {
+            if (!text) return;
+
+            if (text.startsWith('/')) {
                 await this.handleCommand(msg);
+            } else if (text.length > 50) {
+                // Nếu text dài > 50 chars, có thể là bill text
+                await this.handleBillText(msg);
             }
         });
 
@@ -136,6 +141,57 @@ class TelegramBotService {
         await this.bot.sendMessage(chatId, '📄 Tính năng scan document đang được phát triển...');
     }
 
+    async handleBillText(msg) {
+        const chatId = msg.chat.id;
+        const text = msg.text;
+
+        try {
+            await this.bot.sendMessage(chatId, '📝 Đang phân tích text hóa đơn...');
+
+            if (!billParser.isEnabled()) {
+                await this.bot.sendMessage(chatId, '❌ Tính năng AI parsing chưa được config. Cần ANTHROPIC_API_KEY trong .env');
+                return;
+            }
+
+            const billData = await billParser.parseBillText(text);
+
+            if (!billData) {
+                await this.bot.sendMessage(chatId, '❌ Không thể trích xuất thông tin từ text này. Vui lòng thử lại với format rõ ràng hơn.');
+                return;
+            }
+
+            // Create payment automatically
+            if (this.dbOperations && billData.title && billData.due_date) {
+                const payment = await this.createPaymentFromBill(billData);
+
+                await this.bot.sendMessage(chatId,
+                    `✅ Đã tạo nhắc nhở thanh toán từ text!\n\n` +
+                    `📌 ${payment.title}\n` +
+                    `${payment.brand ? `🏢 ${payment.brand}\n` : ''}` +
+                    `💰 ${payment.amount ? payment.amount.toLocaleString('vi-VN') + ' VNĐ' : 'N/A'}\n` +
+                    `📅 Hạn: ${this.formatDate(payment.due_date)}\n` +
+                    `${payment.expiry_datetime ? `⏰ Giờ: ${payment.expiry_datetime.split(' ')[1]}\n` : ''}` +
+                    `\n🔔 Sẽ nhắc nhở bạn trước hạn!`,
+                    { parse_mode: 'HTML' }
+                );
+            } else {
+                // Just show parsed data
+                await this.bot.sendMessage(chatId,
+                    `📋 Thông tin trích xuất:\n\n` +
+                    JSON.stringify(billData, null, 2) +
+                    `\n\n⚠️ Thiếu thông tin bắt buộc (title hoặc due_date)`
+                );
+            }
+
+        } catch (error) {
+            console.error('Error handling bill text:', error);
+            await this.bot.sendMessage(chatId,
+                `❌ Lỗi khi xử lý text: ${error.message}\n\n` +
+                `Vui lòng thử với format rõ ràng hơn.`
+            );
+        }
+    }
+
     async handleCommand(msg) {
         const chatId = msg.chat.id;
         const text = msg.text;
@@ -144,11 +200,20 @@ class TelegramBotService {
             await this.bot.sendMessage(chatId,
                 `🤖 <b>Payment Reminder Bot</b>\n\n` +
                 `<b>Cách sử dụng:</b>\n` +
-                `1️⃣ Chụp ảnh hóa đơn/bill\n` +
-                `2️⃣ Gửi ảnh cho bot\n` +
-                `3️⃣ Bot tự động phân tích và tạo nhắc nhở\n\n` +
+                `📸 <b>Gửi ảnh hóa đơn</b>\n` +
+                `   • Chụp bill, receipt, invoice\n` +
+                `   • Bot tự động đọc và tạo reminder\n\n` +
+                `📝 <b>Paste text hóa đơn</b>\n` +
+                `   • Copy từ email/SMS\n` +
+                `   • Forward message từ bank/shop\n` +
+                `   • Bot sẽ phân tích text\n\n` +
+                `💡 <b>Ví dụ text:</b>\n` +
+                `"Netflix Premium\n` +
+                `Số tiền: 299,000 VNĐ\n` +
+                `Ngày mua: 05/01/2025\n` +
+                `Hết hạn: 05/02/2025"\n\n` +
                 `<b>Commands:</b>\n` +
-                `/help - Hiển thị hướng dẫn\n` +
+                `/help - Hướng dẫn\n` +
                 `/status - Kiểm tra trạng thái`,
                 { parse_mode: 'HTML' }
             );
